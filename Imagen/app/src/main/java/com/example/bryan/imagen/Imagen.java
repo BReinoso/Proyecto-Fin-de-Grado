@@ -47,7 +47,7 @@ public class Imagen extends ActionBarActivity {
                 public void onClick(DialogInterface dialog, int item) {
                     switch(item){
                         case 0:
-                            Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+                            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                             intent.setType("image/*");
                             startActivityForResult(intent, SELECT_IMAGE);
                             break;
@@ -89,25 +89,28 @@ public class Imagen extends ActionBarActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         try{
-            if (requestCode == SELECT_IMAGE)
+            if (requestCode == SELECT_IMAGE) {
                 if (resultCode == Activity.RESULT_OK) {
                     Uri selectedImage = data.getData();
                     lblPhoto.setText(getPath(selectedImage));
                     imgPhoto.setImageURI(selectedImage);
                 }
-            if(requestCode == TAKE_PICTURE)
-                if(resultCode == Activity.RESULT_OK){
+            }
+            if(requestCode == TAKE_PICTURE) {
+                if (resultCode == Activity.RESULT_OK) {
                     Uri selectedImage = data.getData();
                     lblPhoto.setText(getPath(selectedImage));
                     imgPhoto.setImageURI(selectedImage);
                 }
+            }
         } catch(Exception e){}
     }
     private String getPath(Uri uri) {
-        String[] projection = { android.provider.MediaStore.Images.Media.DATA };
+        /*String[] projection = { android.provider.MediaStore.Images.Media.DATA };
         Cursor cursor = managedQuery(uri, projection, null, null, null);
         int column_index = cursor.getColumnIndexOrThrow(android.provider.MediaStore.Images.Media.DATA);
         cursor.moveToFirst();
-        return cursor.getString(column_index);
+        return cursor.getString(column_index);*/
+        return new String("Ok");
     }
 }
