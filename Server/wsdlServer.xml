@@ -10,7 +10,7 @@
    </types>
 
    <message name="PhotoRequest">
-	<part name="photoReceived" type="xsd:base64Nimary">
+	<part name="photoReceived" type="xsd:base64Binary">
    </message>
 
    <message name="PhotoResponse">
