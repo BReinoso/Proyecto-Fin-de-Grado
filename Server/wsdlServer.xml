@@ -1,1 +1,53 @@
-<?xml version="1.0"?><definitions name="PhotoService"	targetNamespace="http://www.examples.com/wsdl/PhotoService.wsdl"	xmlns="http://schemas.xmlsoap.org/wsdl/"	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"	xmlns:tns="http://www.examples.com/wsdl/PhotoService.wsdl"	xmlns:xsd="http://www.w3.org/2001/XMLSchema">   <types>   </types>   <message name="PhotoRequest">	<part name="photoReceived" type="xsd:base64Nimary"/>   </message>   <message name="PhotoResponse">	<part name="photoResult" type="xsd:string"/>   </message>   <portType name="Photo_PortType">      <operation name="calcPhoto">         <input message="tns:PhotoRequest"/>         <output message="tns:PhotoResponse"/>      </operation>   </portType>   <binding name="Photo_Binding" type="tns:Photo_PortType">      <soap:binding style="rpc"         transport="http://schemas.xmlsoap.org/soap/http"/>      <operation name="calcPhoto">         <soap:operation soapAction="calcPhoto"/>         <input>            <soap:body               encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"               namespace="urn:examples:photoservice"               use="encoded"/>         </input>		         <output>            <soap:body               encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"               namespace="urn:examples:photoservice"               use="encoded"/>         </output>      </operation>   </binding>   <service name="Photo_Service">      <documentation>WSDL File for PhotoService</documentation>      <port binding="tns:Photo_Binding" name="Photo_Port">         <soap:address            location="http://www.examples.com/CalcPhoto/" />      </port>   </service></definitions>
+<?xml version="1.0"?>
+<definitions name="PhotoService"
+	targetNamespace="http://www.examples.com/wsdl/PhotoService.wsdl"
+	xmlns="http://schemas.xmlsoap.org/wsdl/"
+	xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+	xmlns:tns="http://www.examples.com/wsdl/PhotoService.wsdl"
+	xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+   <types>
+
+   </types>
+
+   <message name="PhotoRequest">
+	<part name="photoReceived" type="xsd:base64Binary">
+   </message>
+
+   <message name="PhotoResponse">
+	<part name="photoResult" type="xsd:string">
+   </message>
+   <portType name="Photo_PortType">
+      <operation name="calcPhoto">
+         <input message="tns:PhotoRequest"/>
+         <output message="tns:PhotoResponse"/>
+      </operation>
+   </portType>
+   <binding name="Photo_Binding" type="tns:Photo_PortType">
+      <soap:binding style="rpc"
+         transport="http://schemas.xmlsoap.org/soap/http"/>
+      <operation name="calcPhoto">
+         <soap:operation soapAction="calcPhoto"/>
+         <input>
+            <soap:body
+               encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+               namespace="urn:examples:photoservice"
+               use="encoded"/>
+         </input>
+		
+         <output>
+            <soap:body
+               encodingStyle="http://schemas.xmlsoap.org/soap/encoding/"
+               namespace="urn:examples:photoservice"
+               use="encoded"/>
+         </output>
+      </operation>
+   </binding>
+   <service name="Photo_Service">
+      <documentation>WSDL File for PhotoService</documentation>
+      <port binding="tns:Photo_Binding" name="Photo_Port">
+         <soap:address
+            location="http://www.examples.com/CalcPhoto/" />
+      </port>
+   </service>
+</definitions>
+
