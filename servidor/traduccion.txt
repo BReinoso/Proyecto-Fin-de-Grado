@@ -1,0 +1,2 @@
+#sudo easy_install simplejson
+pip install --upgrade google-api-python-client

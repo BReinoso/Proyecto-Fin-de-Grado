@@ -1,0 +1,22 @@
+13:00	LLegué a casa y la máquina virtual no funcionaba.
+13:30	Traté de solucionarlo sin éxito.
+13:35	Procedo a reinstalar la máquina vitual y todas las herramientas necesarias.
+13:50	Sigo el tutorial : https://github.com/BVLC/caffe/wiki/Ubuntu-14.04-VirtualBox-VM
+14:41	He llegado al Makefile.config ahora lo cambiaré, instalaré Flasak y MATLAB
+15:33 	Ya está todo instalado y he probado a hacer el make sin los cambios en el Makefile
+	parece que va bien sin ese cambio.Tpdo apunta a que tenia o una version mala de opencv
+	o varias versiones de opencv que chocaban entre si.
+15:38	He hecho el make matcaffe, make pycaffe, make all , make test, make runtest Y ha pasado
+	todos los make sin problemas y, en especial, el make runtest haa mostrado un menssaje
+	de que se han pasado sin problemas los teses. Procedo ahora a intentar hacer funcionar
+	el NeuralTalk para una imagen personalizada.
+15:51	Descargo archivo necesario para el script de matlab : 			https://gist.github.com/ksimonyan/211839e770f7b538e2d8#file-readme-md
+19:56	Se ha hecho una version del servidor que ya predice y devuelve una sentencia en inglés. Se procede
+	traducirla y después a empezar con el servidor.
+	Herramienta para traducción: pip install goslate
+20:50	La llamada a matlab con system.os no funcionaa bien se procede a probar con: https://github.com/mrkrd/matlab_wrapper/blob/master/examples/eval_m_file.py
+22:25	Tras bastantes intentos por usar el wwrapper no se ha conseguido, se opta por una ejjecución algo 
+	más "sucia". Se intentó ejecutar con os.system ,pero no encontraba la orden de matlab. Luego se intentó
+	ejecutar con un script de bash y se tuvo que recurrir al sudo -u username por problemas de licencia.
+	Finalmente se acabo con un os.system("sudo -u username ./script_bash"). Faatla la traducción para terminar
+	el prototipo funcional completo del servidor, ahora se empezará aa trabajar con el cliente.
