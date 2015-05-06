@@ -4,36 +4,32 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
 import android.net.Uri;
-import android.provider.OpenableColumns;
+import android.os.AsyncTask;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.BasicHttpParams;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 
 
@@ -45,9 +41,12 @@ public class Imagen extends ActionBarActivity {
     private ImageView imgPhoto;
     private RelativeLayout world;
     private HttpClient client;
-    private HttpPost post=new HttpPost("192.168.1.138");
+    private HttpPost post=new HttpPost("http://192.168.1.138");
     private MultipartEntityBuilder builder=MultipartEntityBuilder.create();
     private HttpResponse response;
+    private Uri selectedImage;
+    private File file_image;
+    private String resultado;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,43 +125,84 @@ public class Imagen extends ActionBarActivity {
         try{
             if (requestCode == SELECT_IMAGE) {
                 if (resultCode == Activity.RESULT_OK) {
-                    Uri selectedImage = data.getData();
+                    selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    File file_image=new File(selectedImage.toString());
-                    FileBody file_send=new FileBody(file_image);
-                    builder.addPart("file",file_send);
-                    HttpEntity entity=builder.build();
-                    post.setEntity(entity);
-                    response=client.execute(post);
-                    lblPhoto.setText(getContent(response));
+                    file_image=new File(selectedImage.toString());
+                    new ImageUploader().execute();
+                    lblPhoto.setText(resultado);
                 }
             }
             if(requestCode == TAKE_PICTURE) {
                 if (resultCode == Activity.RESULT_OK) {
-                    Uri selectedImage = data.getData();
-                    lblPhoto.setText("ok");
+                    selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    File file_image=new File(selectedImage.toString());
-                    FileBody file_send=new FileBody(file_image);
-                    builder.addPart("file",file_send);
-                    post.setEntity(builder.build());
-                    response=client.execute(post);
-                    lblPhoto.setText(getContent(response));
+                    file_image=new File(selectedImage.toString());
+                    lblPhoto.setText(resultado);
                 }
             }
         } catch(Exception e){
             e.printStackTrace();
         }
     }
-    public static String getContent(HttpResponse response) throws IOException {
-        BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-        String body = "";
-        String content = "";
+    class ImageUploader extends AsyncTask<Void, Void, String> {
 
-        while ((body = rd.readLine()) != null)
-        {
-            content += body + "\n";
+        @Override
+        protected String doInBackground(Void... params) {
+            // TODO Auto-generated method stub
+            String result = "";
+            try {
+
+                // creating a file body consisting of the file that we want to
+                // send to the server
+                FileBody bin;
+                bin = new FileBody(file_image);
+
+                /**
+                 * An HTTP entity is the majority of an HTTP request or
+                 * response, consisting of some of the headers and the body, if
+                 * present. It seems to be the entire request or response
+                 * without the request or status line (although only certain
+                 * header fields are considered part of the entity).
+                 *
+                 * */
+                builder = MultipartEntityBuilder.create();
+                builder.addBinaryBody("file",file_image, ContentType.create("image/jpeg"), file_image.getName());
+                post.setHeader("enctype", "multipart/form-data");
+                post.setEntity(builder.build());
+
+                // Execute POST request to the given URL
+                response= null;
+                response = client.execute(post);
+
+                // receive response as inputStream
+                InputStream inputStream = null;
+                inputStream = response.getEntity().getContent();
+
+                if (inputStream != null)
+                    result = convertInputStreamToString(inputStream);
+                else
+                    result = "Did not work!";
+                resultado =result;
+                return result;
+            } catch (Exception e) {
+
+                return null;
+            }
+
+            // return result;
         }
-        return content.trim();
+        private String convertInputStreamToString(InputStream inputStream)
+                throws IOException {
+            BufferedReader bufferedReader = new BufferedReader(
+                    new InputStreamReader(inputStream));
+            String line = "";
+            String result = "";
+            while ((line = bufferedReader.readLine()) != null)
+                result += line;
+
+            inputStream.close();
+            return result;
+
+        }
     }
 }
