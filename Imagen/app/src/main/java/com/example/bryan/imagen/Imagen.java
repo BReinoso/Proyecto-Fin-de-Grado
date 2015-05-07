@@ -2,6 +2,7 @@ package com.example.bryan.imagen;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -17,6 +18,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
 import org.apache.http.HttpEntity;
@@ -34,37 +36,32 @@ import org.apache.http.params.CoreProtocolPNames;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 
 
 public class Imagen extends ActionBarActivity {
     private int SELECT_IMAGE = 237;
     private int TAKE_PICTURE = 829;
-    private int n_touchs=0;
+    private int n_touchs = 0;
     private EditText lblPhoto;
     private ImageView imgPhoto;
     private RelativeLayout world;
-    private HttpClient client;
-    private HttpPost post=new HttpPost("http://192.168.1.138");
-    private MultipartEntityBuilder builder=MultipartEntityBuilder.create();
-    private HttpResponse response;
     private Uri selectedImage;
     private File file_image;
-    private String resultado="Me paso";
-    private FileBody bin;
-    private String extr = Environment.getExternalStorageDirectory().toString();
+    private String resultado = "acabo";
+    //ProgressDialog progress = new ProgressDialog(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_imagen);
-        lblPhoto=(EditText)findViewById(R.id.lblPhoto);
-        imgPhoto=(ImageView)findViewById(R.id.imgPhoto);
-        world=(RelativeLayout)findViewById(R.id.world);
-        client=new DefaultHttpClient();
-        builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+        lblPhoto = (EditText) findViewById(R.id.lblPhoto);
+        imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
+        world = (RelativeLayout) findViewById(R.id.world);
         world.setOnTouchListener(new RelativeLayout.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -77,15 +74,15 @@ public class Imagen extends ActionBarActivity {
         });
     }
 
-    private void dialogPhoto(){
-        try{
+    private void dialogPhoto() {
+        try {
             final CharSequence[] items = {"Seleccionar de la galería", "Hacer una foto"};
 
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
             builder.setTitle("Seleccionar una foto");
             builder.setItems(items, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int item) {
-                    switch(item){
+                    switch (item) {
                         case 0:
                             Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
                             intent.setType("image/*");
@@ -100,7 +97,7 @@ public class Imagen extends ActionBarActivity {
             });
             AlertDialog alert = builder.create();
             alert.show();
-        } catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -126,36 +123,50 @@ public class Imagen extends ActionBarActivity {
 
         return super.onOptionsItemSelected(item);
     }
+
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
-        try{
+        try {
             if (requestCode == SELECT_IMAGE) {
                 if (resultCode == Activity.RESULT_OK) {
                     selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    file_image=new File(getPath(selectedImage));
-                    bin = new FileBody(file_image);
-                    builder.addPart("file",bin);
-                    post.setEntity(builder.build());
+                    file_image = new File(getPath(selectedImage));
                     new ImageUploader().execute();
-                    lblPhoto.setText(resultado);
                 }
             }
-            if(requestCode == TAKE_PICTURE) {
+            if (requestCode == TAKE_PICTURE) {
                 if (resultCode == Activity.RESULT_OK) {
                     selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    file_image=new File(selectedImage.toString());
+                    file_image = new File(selectedImage.toString());
                     lblPhoto.setText(resultado);
                 }
             }
-        } catch(Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
+
+    public String getPath(Uri uri) {
+        String[] projection = {MediaStore.Images.Media.DATA};
+        Cursor cursor = managedQuery(uri, projection, null, null, null);
+        startManagingCursor(cursor);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
+    }
+
     class ImageUploader extends AsyncTask<Void, Void, String> {
+        private HttpClient client;
+        private HttpPost post = new HttpPost("http://192.168.1.138");
+        private MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        private HttpResponse response;
+        private FileBody bin;
+        private HttpEntity yourEntity;
+        private final ProgressDialog dialog = new ProgressDialog(Imagen.this);
 
         @Override
         protected String doInBackground(Void... params) {
@@ -174,15 +185,19 @@ public class Imagen extends ActionBarActivity {
                  * header fields are considered part of the entity).
                  *
                  * */
-                //client.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
-                //builder.addBinaryBody("file",file_image, ContentType.create("image/jpeg"), file_image.getName());
-                //post.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
-                //post.setHeader("Connection","Keep-Alive");
-                //post.setHeader("Content-type", "multipart/form-data; boundary=----WebKitFormBoundaryv2ozxEYZkpotHSlG");
-
+                client = new DefaultHttpClient();
+                builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+                bin = new FileBody(file_image);
+                builder.addPart("file", bin);
+                yourEntity = builder.build();
+                //progress.setMessage("Procesing Image :) ");
+                //progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+                //progress.setIndeterminate(true);
+                //progress.show();
+                post.setEntity(yourEntity);
 
                 // Execute POST request to the given URL
-                response= null;
+                response = null;
                 response = client.execute(post);
 
                 // receive response as inputStream
@@ -192,7 +207,7 @@ public class Imagen extends ActionBarActivity {
                     result = convertInputStreamToString(inputStream);
                 else
                     result = "Did not work!";
-                resultado =result;
+                resultado = result;
                 return result;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -201,6 +216,26 @@ public class Imagen extends ActionBarActivity {
 
             // return result;
         }
+
+
+        @Override
+        protected void onPreExecute() {
+            // TODO Auto-generated method stub
+            super.onPreExecute();
+            this.dialog.setMessage("Processing...");
+            this.dialog.show();
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            // TODO Auto-generated method stub
+            super.onPostExecute(result);
+            this.dialog.cancel();
+            Imagen.this.lblPhoto.setText(resultado);
+        }
+
+    }
+
         private String convertInputStreamToString(InputStream inputStream)
                 throws IOException {
             BufferedReader bufferedReader = new BufferedReader(
@@ -215,12 +250,3 @@ public class Imagen extends ActionBarActivity {
 
         }
     }
-    public String getPath(Uri uri) {
-        String[] projection = { MediaStore.Images.Media.DATA };
-        Cursor cursor = managedQuery(uri, projection, null, null, null);
-        startManagingCursor(cursor);
-        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
-        cursor.moveToFirst();
-        return cursor.getString(column_index);
-    }
-}
