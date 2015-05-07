@@ -8,8 +8,8 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Environment;
 import android.provider.MediaStore;
+import android.speech.tts.TextToSpeech;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -18,32 +18,31 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
+import android.widget.Toast;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.CoreProtocolPNames;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
+import java.util.Locale;
 
 
-public class Imagen extends ActionBarActivity {
+public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitListener{
+    //TTS object
+    private TextToSpeech myTTS;
+    //status check code
+    private int MY_DATA_CHECK_CODE = 0;
     private int SELECT_IMAGE = 237;
     private int TAKE_PICTURE = 829;
     private int n_touchs = 0;
@@ -53,7 +52,6 @@ public class Imagen extends ActionBarActivity {
     private Uri selectedImage;
     private File file_image;
     private String resultado = "acabo";
-    //ProgressDialog progress = new ProgressDialog(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +60,11 @@ public class Imagen extends ActionBarActivity {
         lblPhoto = (EditText) findViewById(R.id.lblPhoto);
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
+
+        //check for TTS data
+        Intent checkTTSIntent = new Intent();
+        checkTTSIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
+        startActivityForResult(checkTTSIntent, MY_DATA_CHECK_CODE);
         world.setOnTouchListener(new RelativeLayout.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -74,6 +77,10 @@ public class Imagen extends ActionBarActivity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+    }
     private void dialogPhoto() {
         try {
             final CharSequence[] items = {"Seleccionar de la galería", "Hacer una foto"};
@@ -141,8 +148,20 @@ public class Imagen extends ActionBarActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    file_image = new File(selectedImage.toString());
-                    lblPhoto.setText(resultado);
+                    file_image = new File(getPath(selectedImage));
+                    new ImageUploader().execute();
+                }
+            }
+            if (requestCode == MY_DATA_CHECK_CODE) {
+                if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
+                    //the user has the necessary data - create the TTS
+                    myTTS = new TextToSpeech(Imagen.this,Imagen.this);
+                }
+                else {
+                    //no data - install it now
+                    Intent installTTSIntent = new Intent();
+                    installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
+                    startActivity(installTTSIntent);
                 }
             }
         } catch (Exception e) {
@@ -222,6 +241,7 @@ public class Imagen extends ActionBarActivity {
         protected void onPreExecute() {
             // TODO Auto-generated method stub
             super.onPreExecute();
+            speakWords("Procesando imagen, esto puede tardar uno o dos minutos");
             this.dialog.setMessage("Processing...");
             this.dialog.show();
         }
@@ -232,21 +252,48 @@ public class Imagen extends ActionBarActivity {
             super.onPostExecute(result);
             this.dialog.cancel();
             Imagen.this.lblPhoto.setText(resultado);
+            Imagen.this.speakWords(resultado);
         }
 
     }
-
-        private String convertInputStreamToString(InputStream inputStream)
-                throws IOException {
-            BufferedReader bufferedReader = new BufferedReader(
-                    new InputStreamReader(inputStream));
-            String line = "";
-            String result = "";
-            while ((line = bufferedReader.readLine()) != null)
-                result += line;
+    private void leerTexto(){
+        lblPhoto.setText(resultado);
+        TextToSpeech ttobj=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+            }
+        }
+        );
+        Locale loc=new Locale("es","","");
+        ttobj.setLanguage(loc);
+        ttobj.speak(resultado,TextToSpeech.QUEUE_FLUSH, null);
+    }
+    private String convertInputStreamToString(InputStream inputStream) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        String line = "";
+        String result = "";
+        while ((line = bufferedReader.readLine()) != null)
+            result += line;
             bufferedReader.close();
             inputStream.close();
             return result;
 
         }
+    //speak the user text
+    private void speakWords(String speech) {
+
+        //speak straight away
+        myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
+    }
+    public void onInit(int initStatus) {
+
+        //check for successful instantiation
+        if (initStatus == TextToSpeech.SUCCESS) {
+            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
+                myTTS.setLanguage(Locale.US);
+        }
+        else if (initStatus == TextToSpeech.ERROR) {
+            Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
+        }
+    }
     }
