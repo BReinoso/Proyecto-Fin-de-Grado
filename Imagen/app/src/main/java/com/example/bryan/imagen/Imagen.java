@@ -4,8 +4,11 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -18,6 +21,7 @@ import android.widget.RelativeLayout;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpVersion;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -25,9 +29,11 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.params.CoreProtocolPNames;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -46,7 +52,9 @@ public class Imagen extends ActionBarActivity {
     private HttpResponse response;
     private Uri selectedImage;
     private File file_image;
-    private String resultado;
+    private String resultado="Me paso";
+    private FileBody bin;
+    private String extr = Environment.getExternalStorageDirectory().toString();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -127,7 +135,10 @@ public class Imagen extends ActionBarActivity {
                 if (resultCode == Activity.RESULT_OK) {
                     selectedImage = data.getData();
                     imgPhoto.setImageURI(selectedImage);
-                    file_image=new File(selectedImage.toString());
+                    file_image=new File(getPath(selectedImage));
+                    bin = new FileBody(file_image);
+                    builder.addPart("file",bin);
+                    post.setEntity(builder.build());
                     new ImageUploader().execute();
                     lblPhoto.setText(resultado);
                 }
@@ -154,8 +165,6 @@ public class Imagen extends ActionBarActivity {
 
                 // creating a file body consisting of the file that we want to
                 // send to the server
-                FileBody bin;
-                bin = new FileBody(file_image);
 
                 /**
                  * An HTTP entity is the majority of an HTTP request or
@@ -165,10 +174,12 @@ public class Imagen extends ActionBarActivity {
                  * header fields are considered part of the entity).
                  *
                  * */
-                builder = MultipartEntityBuilder.create();
-                builder.addBinaryBody("file",file_image, ContentType.create("image/jpeg"), file_image.getName());
-                post.setHeader("enctype", "multipart/form-data");
-                post.setEntity(builder.build());
+                //client.getParams().setParameter(CoreProtocolPNames.PROTOCOL_VERSION, HttpVersion.HTTP_1_1);
+                //builder.addBinaryBody("file",file_image, ContentType.create("image/jpeg"), file_image.getName());
+                //post.setHeader("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8");
+                //post.setHeader("Connection","Keep-Alive");
+                //post.setHeader("Content-type", "multipart/form-data; boundary=----WebKitFormBoundaryv2ozxEYZkpotHSlG");
+
 
                 // Execute POST request to the given URL
                 response= null;
@@ -177,7 +188,6 @@ public class Imagen extends ActionBarActivity {
                 // receive response as inputStream
                 InputStream inputStream = null;
                 inputStream = response.getEntity().getContent();
-
                 if (inputStream != null)
                     result = convertInputStreamToString(inputStream);
                 else
@@ -185,7 +195,7 @@ public class Imagen extends ActionBarActivity {
                 resultado =result;
                 return result;
             } catch (Exception e) {
-
+                e.printStackTrace();
                 return null;
             }
 
@@ -199,10 +209,18 @@ public class Imagen extends ActionBarActivity {
             String result = "";
             while ((line = bufferedReader.readLine()) != null)
                 result += line;
-
+            bufferedReader.close();
             inputStream.close();
             return result;
 
         }
+    }
+    public String getPath(Uri uri) {
+        String[] projection = { MediaStore.Images.Media.DATA };
+        Cursor cursor = managedQuery(uri, projection, null, null, null);
+        startManagingCursor(cursor);
+        int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+        cursor.moveToFirst();
+        return cursor.getString(column_index);
     }
 }
