@@ -5,6 +5,8 @@ import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.AssetManager;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -36,23 +38,74 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Locale;
+import java.util.Properties;
 
 
 public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitListener{
-    //TTS object
+    /**
+     * Resource to use with the assetManager
+     */
+    Resources resources = this.getResources();
+    /**
+     * Asset Manager to use with the properties
+     */
+    AssetManager assetManager = resources.getAssets();
+    /**
+     * Properties to load the properties
+     */
+    Properties properties = new Properties();
+    /**
+     * TextToSpeech object
+     */
     private TextToSpeech myTTS;
-    //status check code
+    /**
+     * Code to check data for TTS
+     */
     private int MY_DATA_CHECK_CODE = 0;
+    /**
+     *Code to select image from the galery
+     */
     private int SELECT_IMAGE = 237;
+    /**
+     *Code to take a picture with the camera
+     */
     private int TAKE_PICTURE = 829;
+    /**
+     * To control the use of application
+     */
     private int n_touchs = 0;
+    /**
+     * To put the label of the photo after the prediction
+     */
     private EditText lblPhoto;
+    /**
+     * To show the photo
+     */
     private ImageView imgPhoto;
+    /**
+     * To work with the entire application
+     */
     private RelativeLayout world;
+    /**
+     * To handle the image
+     */
     private Uri selectedImage;
+    /**
+     * To cast the uri for the post request
+     */
     private File file_image;
-    private String resultado = "acabo";
-
+    /**
+     * In case the connection don't work properly
+     */
+    private String resultado = "No se ha conectado con el servidor";
+    /**
+     * URL of the server
+     */
+    private String url="Servidor";
+    /**
+     * Function onCreate where the main configuration of the activity is established
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,10 +114,21 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
 
-        //check for TTS data
+        try {
+            InputStream inputStream = assetManager.open("Imagen.properties");
+            properties.load(inputStream);
+            System.out.println("The properties are now loaded");
+            System.out.println("properties: " + properties);
+            url=properties.getProperty(url);
+        } catch (IOException e) {
+            System.err.println("Failed to open microlog property file");
+            e.printStackTrace();
+        }
+
         Intent checkTTSIntent = new Intent();
         checkTTSIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
         startActivityForResult(checkTTSIntent, MY_DATA_CHECK_CODE);
+
         world.setOnTouchListener(new RelativeLayout.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -178,48 +242,64 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         return cursor.getString(column_index);
     }
 
+    /**
+     * Internal class to do the post request
+     */
     class ImageUploader extends AsyncTask<Void, Void, String> {
+        /**
+         * Client to do the post request
+         */
         private HttpClient client;
-        private HttpPost post = new HttpPost("http://192.168.1.138");
+        /**
+         * HttPost object to handle the post request
+         */
+        private HttpPost post = new HttpPost(url);
+        /**
+         * To handle the data into the post request
+         */
         private MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+        /**
+         * To handle the response after the post request, form here we will receive the prediction
+         * label
+         */
         private HttpResponse response;
+        /**
+         * Special object to send the image into the post request
+         */
         private FileBody bin;
+        /**
+         * To handle the header of post request
+         */
         private HttpEntity yourEntity;
+        /**
+         * To wait for the main thread
+         */
         private final ProgressDialog dialog = new ProgressDialog(Imagen.this);
 
+        /**
+         * This function is necessary for the post request execution because it cannot be execute in
+         * the thread main
+         * @param params
+         * @return Return the label or "Did not work"
+         */
         @Override
         protected String doInBackground(Void... params) {
             // TODO Auto-generated method stub
+            /**
+             * To save the result
+             */
             String result = "";
             try {
-
-                // creating a file body consisting of the file that we want to
-                // send to the server
-
-                /**
-                 * An HTTP entity is the majority of an HTTP request or
-                 * response, consisting of some of the headers and the body, if
-                 * present. It seems to be the entire request or response
-                 * without the request or status line (although only certain
-                 * header fields are considered part of the entity).
-                 *
-                 * */
                 client = new DefaultHttpClient();
                 builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
                 bin = new FileBody(file_image);
                 builder.addPart("file", bin);
                 yourEntity = builder.build();
-                //progress.setMessage("Procesing Image :) ");
-                //progress.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-                //progress.setIndeterminate(true);
-                //progress.show();
                 post.setEntity(yourEntity);
 
-                // Execute POST request to the given URL
                 response = null;
                 response = client.execute(post);
 
-                // receive response as inputStream
                 InputStream inputStream = null;
                 inputStream = response.getEntity().getContent();
                 if (inputStream != null)
@@ -232,11 +312,11 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                 e.printStackTrace();
                 return null;
             }
-
-            // return result;
         }
 
-
+        /**
+         *To execute before the post request
+         */
         @Override
         protected void onPreExecute() {
             // TODO Auto-generated method stub
@@ -246,6 +326,10 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
             this.dialog.show();
         }
 
+        /**
+         * To execute after the post request
+         * @param result The result of the execution
+         */
         @Override
         protected void onPostExecute(String result) {
             // TODO Auto-generated method stub
@@ -274,11 +358,11 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         String result = "";
         while ((line = bufferedReader.readLine()) != null)
             result += line;
-            bufferedReader.close();
-            inputStream.close();
-            return result;
+        bufferedReader.close();
+        inputStream.close();
+        return result;
 
-        }
+    }
     //speak the user text
     private void speakWords(String speech) {
 
@@ -296,4 +380,4 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
             Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
         }
     }
-    }
+}
