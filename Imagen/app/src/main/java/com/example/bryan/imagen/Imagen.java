@@ -141,10 +141,10 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         });
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-    }
+
+    /**
+     * Muestra el diálogo para elegir tomar una foto o sacarla con la cámara
+     */
     private void dialogPhoto() {
         try {
             final CharSequence[] items = {"Seleccionar de la galería", "Hacer una foto"};
@@ -173,21 +173,25 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         }
     }
 
+    /**
+     *
+     * @param menu
+     * @return
+     */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_imagen, menu);
         return true;
     }
 
+    /**
+     *
+     * @param item
+     * @return
+     */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             return true;
         }
@@ -195,6 +199,13 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Método de OnActivtyResult para hacer algo en resultado a una acitvidad
+     *
+     * @param requestCode Código de petición
+     * @param resultCode Código de resultado
+     * @param data Datos del intent
+     */
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -218,11 +229,9 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
             }
             if (requestCode == MY_DATA_CHECK_CODE) {
                 if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-                    //the user has the necessary data - create the TTS
                     myTTS = new TextToSpeech(Imagen.this,Imagen.this);
                 }
                 else {
-                    //no data - install it now
                     Intent installTTSIntent = new Intent();
                     installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
                     startActivity(installTTSIntent);
@@ -233,6 +242,13 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         }
     }
 
+    /**
+     * Función que se encarga de extraer el path de un fichero a través
+     * de un objeto de tipo Uri
+     *
+     * @param uri Objeto Uri referenciando el archivo
+     * @return String con el path del archivo
+     */
     public String getPath(Uri uri) {
         String[] projection = {MediaStore.Images.Media.DATA};
         Cursor cursor = managedQuery(uri, projection, null, null, null);
@@ -363,15 +379,21 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         return result;
 
     }
-    //speak the user text
-    private void speakWords(String speech) {
 
-        //speak straight away
+    /**
+     * Se lee una cadena en voz alta
+     *
+     * @param speech Cadena a leer
+     */
+    private void speakWords(String speech) {
         myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
     }
-    public void onInit(int initStatus) {
 
-        //check for successful instantiation
+    /**
+     * Configurando el Text2Speech object
+     * @param initStatus Status
+     */
+    public void onInit(int initStatus) {
         if (initStatus == TextToSpeech.SUCCESS) {
             if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
                 myTTS.setLanguage(Locale.US);
