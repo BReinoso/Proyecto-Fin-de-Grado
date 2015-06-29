@@ -1,22 +1,27 @@
 package com.example.bryan.imagen;
 
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.ProgressDialog;
-import android.content.DialogInterface;
+import android.content.Context;
 import android.content.Intent;
-import android.content.res.AssetManager;
-import android.content.res.Resources;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -34,38 +39,30 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.util.Locale;
 import java.util.Properties;
+import android.hardware.Camera;
 
 
 public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitListener{
     /**
      * Resource to use with the assetManager
      */
-    Resources resources = this.getResources();
+    private PropertyReader propertyReader;
+    private Context context;
+    private Properties properties;
     /**
      * Asset Manager to use with the properties
      */
-    AssetManager assetManager = resources.getAssets();
-    /**
-     * Properties to load the properties
-     */
-    Properties properties = new Properties();
     /**
      * TextToSpeech object
      */
     private TextToSpeech myTTS;
-    /**
-     * Code to check data for TTS
-     */
-    private int MY_DATA_CHECK_CODE = 0;
-    /**
-     *Code to select image from the galery
-     */
-    private int SELECT_IMAGE = 237;
     /**
      *Code to take a picture with the camera
      */
@@ -90,6 +87,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      * To handle the image
      */
     private Uri selectedImage;
+    private Bitmap imagen;
     /**
      * To cast the uri for the post request
      */
@@ -97,11 +95,67 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     /**
      * In case the connection don't work properly
      */
-    private String resultado = "No se ha conectado con el servidor";
+    private String resultado;
     /**
      * URL of the server
      */
     private String url="Servidor";
+
+    private Camera camera;
+
+    private Camera.Parameters parameters;
+
+    private SurfaceView surfaceView;
+
+    private SurfaceHolder surfaceHolder;
+
+
+    private File fileDir;
+
+    private Camera.PictureCallback pictureCallback=new Camera.PictureCallback() {
+        @Override
+        public void onPictureTaken(byte[] bytes, Camera camera) {
+            if (bytes != null) {
+                Log.w("TOMADA","Si que se tienen datos");
+                camera.stopPreview();
+                camera.release();
+                Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                int orientation;
+                if(bitmap.getHeight() < bitmap.getWidth()){
+                    orientation = 90;
+                } else {
+                    orientation = 0;
+                }
+
+                Bitmap bMapRotate;
+                if (orientation != 0) {
+                    Matrix matrix = new Matrix();
+                    matrix.postRotate(orientation);
+                    bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+                            bitmap.getHeight(), matrix, true);
+                }
+                imagen=bitmap;
+                imgPhoto.setImageBitmap(imagen);
+                file_image=new File(Environment.getExternalStorageDirectory(), "procesarImagen.jpg");
+                if(file_image.exists()){
+                    file_image.delete();
+                }
+                OutputStream os;
+                try{
+                    os=new FileOutputStream(file_image.getPath());
+                    os.write(bytes);
+                    os.flush();
+                    os.close();
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+                new ImageUploader().execute();
+            }else{
+
+                Log.w("NO TOMADA","No se tienen datos");
+            }
+        }
+    };
     /**
      * Function onCreate where the main configuration of the activity is established
      * @param savedInstanceState
@@ -113,66 +167,37 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         lblPhoto = (EditText) findViewById(R.id.lblPhoto);
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
+        fileDir=getApplicationContext().getFilesDir();
 
+        context=this;
+        propertyReader = new PropertyReader(context);
+        properties = propertyReader.getMyProperties("Imagen.properties");
+        url=properties.getProperty(url);
+        lblPhoto.setText(url);
+
+        myTTS = new TextToSpeech(Imagen.this,Imagen.this);
+
+        camera=Camera.open(0);
+        parameters= camera.getParameters();
+        surfaceView=(SurfaceView) findViewById(R.id.surfaceView);
+        surfaceHolder=surfaceView.getHolder();
         try {
-            InputStream inputStream = assetManager.open("Imagen.properties");
-            properties.load(inputStream);
-            System.out.println("The properties are now loaded");
-            System.out.println("properties: " + properties);
-            url=properties.getProperty(url);
+            camera.setPreviewDisplay(surfaceHolder);
         } catch (IOException e) {
-            System.err.println("Failed to open microlog property file");
             e.printStackTrace();
         }
-
-        Intent checkTTSIntent = new Intent();
-        checkTTSIntent.setAction(TextToSpeech.Engine.ACTION_CHECK_TTS_DATA);
-        startActivityForResult(checkTTSIntent, MY_DATA_CHECK_CODE);
 
         world.setOnTouchListener(new RelativeLayout.OnTouchListener() {
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (n_touchs == 0) {
-                    dialogPhoto();
+                    tomarFoto();
                     n_touchs++;
                 }
                 return true;
             }
         });
     }
-
-
-    /**
-     * Muestra el diálogo para elegir tomar una foto o sacarla con la cámara
-     */
-    private void dialogPhoto() {
-        try {
-            final CharSequence[] items = {"Seleccionar de la galería", "Hacer una foto"};
-
-            AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Seleccionar una foto");
-            builder.setItems(items, new DialogInterface.OnClickListener() {
-                public void onClick(DialogInterface dialog, int item) {
-                    switch (item) {
-                        case 0:
-                            Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                            intent.setType("image/*");
-                            startActivityForResult(intent, SELECT_IMAGE);
-                            break;
-                        case 1:
-                            startActivityForResult(new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE), TAKE_PICTURE);
-                            break;
-                    }
-
-                }
-            });
-            AlertDialog alert = builder.create();
-            alert.show();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
     /**
      *
      * @param menu
@@ -199,47 +224,9 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         return super.onOptionsItemSelected(item);
     }
 
-    /**
-     * Método de OnActivtyResult para hacer algo en resultado a una acitvidad
-     *
-     * @param requestCode Código de petición
-     * @param resultCode Código de resultado
-     * @param data Datos del intent
-     */
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        try {
-            if (requestCode == SELECT_IMAGE) {
-                if (resultCode == Activity.RESULT_OK) {
-                    selectedImage = data.getData();
-                    imgPhoto.setImageURI(selectedImage);
-                    file_image = new File(getPath(selectedImage));
-                    new ImageUploader().execute();
-                }
-            }
-            if (requestCode == TAKE_PICTURE) {
-                if (resultCode == Activity.RESULT_OK) {
-                    selectedImage = data.getData();
-                    imgPhoto.setImageURI(selectedImage);
-                    file_image = new File(getPath(selectedImage));
-                    new ImageUploader().execute();
-                }
-            }
-            if (requestCode == MY_DATA_CHECK_CODE) {
-                if (resultCode == TextToSpeech.Engine.CHECK_VOICE_DATA_PASS) {
-                    myTTS = new TextToSpeech(Imagen.this,Imagen.this);
-                }
-                else {
-                    Intent installTTSIntent = new Intent();
-                    installTTSIntent.setAction(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA);
-                    startActivity(installTTSIntent);
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void tomarFoto(){
+        camera.startPreview();
+        camera.takePicture(null, null, pictureCallback);
     }
 
     /**
@@ -326,6 +313,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                 return result;
             } catch (Exception e) {
                 e.printStackTrace();
+                resultado="No se ha conectado con el servidor";
                 return null;
             }
         }
@@ -353,20 +341,9 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
             this.dialog.cancel();
             Imagen.this.lblPhoto.setText(resultado);
             Imagen.this.speakWords(resultado);
+            n_touchs=0;
         }
 
-    }
-    private void leerTexto(){
-        lblPhoto.setText(resultado);
-        TextToSpeech ttobj=new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-            }
-        }
-        );
-        Locale loc=new Locale("es","","");
-        ttobj.setLanguage(loc);
-        ttobj.speak(resultado,TextToSpeech.QUEUE_FLUSH, null);
     }
     private String convertInputStreamToString(InputStream inputStream) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
