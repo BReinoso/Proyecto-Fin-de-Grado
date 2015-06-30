@@ -21,6 +21,7 @@ import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
@@ -123,6 +124,10 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      */
     private SurfaceHolder surfaceHolder;
     /**
+     * Botón que se autoactiva para dar las primeras instrucciones al usuario
+     */
+    private Button button;
+    /**
      * Callback para recoger los datos capturados por la cámara y posteriormente ejecutar la petición
      * post con estos.
      */
@@ -179,12 +184,21 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         lblPhoto = (EditText) findViewById(R.id.lblPhoto);
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
+        button= (Button) findViewById(R.id.initButton);
+
+        button.setOnClickListener(new Button.OnClickListener() {
+            public void onClick(View v) {
+                speakWords("Toque la pantalla para tomar una foto y que se ejecute la predicción." +
+                        "Asegúrese que está apuntando con el móvil en la dirección que quiere tomar " +
+                        "la foto.");
+            }
+        });
 
         context=this;
         propertyReader = new PropertyReader(context);
         properties = propertyReader.getMyProperties("Imagen.properties");
         url=properties.getProperty(url);
-        lblPhoto.setText(url);
+        lblPhoto.setText("A la espera de que se toque la pantalla");
 
         myTTS = new TextToSpeech(Imagen.this,Imagen.this);
 
@@ -207,6 +221,14 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                 return true;
             }
         });
+
+        button.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+              button.performClick();
+            }
+
+        }, 2000);
     }
     /**
      *{@inheritDoc}
@@ -389,8 +411,9 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      */
     public void onInit(int initStatus) {
         if (initStatus == TextToSpeech.SUCCESS) {
-            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE)
+            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE) {
                 myTTS.setLanguage(Locale.US);
+            }
         }
         else if (initStatus == TextToSpeech.ERROR) {
             Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
