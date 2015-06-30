@@ -7,18 +7,38 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Created by Bryan
+ * Clase para controlar la extracción de propiedades desde el fichero properties.
+ *
+ * @versión 1.0
+ * @author Bryan Reinoso Cevallos
  */
 public class PropertyReader {
-
+    /**
+     * Contexto de la actividad que llama al objeto
+     */
     private Context context;
+    /**
+     * Conjunto de propiedades ya listas para trabajar con ellas
+     */
     private Properties properties;
 
+    /**
+     * Contructor de ProppertyReader
+     *
+     * @param context contexto de la actividad que instancia
+     */
     public PropertyReader(Context context){
         this.context=context;
         properties = new Properties();
     }
 
+    /**
+     * Recibe un fichero que es el que tiene las propiedades que queremos extraer y devuelve las
+     * propiedades para ser usadas.
+     *
+     * @param file Nombre del fichero .properties con el que se quiere trabajar
+     * @return Objeto properties del que se pueden extraer fácilmente las propiedades.
+     */
     public Properties getMyProperties(String file){
         try{
             AssetManager assetManager = context.getAssets();

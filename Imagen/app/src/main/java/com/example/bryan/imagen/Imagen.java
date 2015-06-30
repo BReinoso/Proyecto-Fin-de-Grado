@@ -1,9 +1,8 @@
 package com.example.bryan.imagen;
 
-import android.app.Activity;
+
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -19,7 +18,6 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MotionEvent;
-import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -48,13 +46,26 @@ import java.util.Locale;
 import java.util.Properties;
 import android.hardware.Camera;
 
-
+/**
+ * Esta es la clase para la actividad principal de la aplicación, en ella se controla toda su
+ * ejecución.
+ *
+ * @version 2.7
+ * @author Bryan Reinoso Cevallos
+ */
 public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitListener{
     /**
      * Resource to use with the assetManager
      */
     private PropertyReader propertyReader;
+    /**
+     * Objeto tipo contexto para guardar el contexto de la aplicación
+     */
     private Context context;
+    /**
+     * Objeto tipo propiedades donde guardaremos las propiedades del fichero properties de la
+     * aplicación.
+     */
     private Properties properties;
     /**
      * Asset Manager to use with the properties
@@ -63,10 +74,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      * TextToSpeech object
      */
     private TextToSpeech myTTS;
-    /**
-     *Code to take a picture with the camera
-     */
-    private int TAKE_PICTURE = 829;
     /**
      * To control the use of application
      */
@@ -100,18 +107,25 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      * URL of the server
      */
     private String url="Servidor";
-
+    /**
+     * Objeto camara para controlar la camara desde nuestra aplicación. Ahora esta actualizado, pero
+     * para uso con Android lolipop así que se ha decidido usar este objeto.
+     */
     private Camera camera;
-
-    private Camera.Parameters parameters;
-
+    /**
+     * Objeto referencia al surfaceView del xml de la actividad, donde se verá la previsualización
+     * de la cámara. Nosotros lo tenemos puesto en transparente.
+     */
     private SurfaceView surfaceView;
-
+    /**
+     *Este objeto sirve como contenedor de la surfaceView y es con el que iniciamos la previsualización
+     * de la cámara, porque sin iniciarlo la cámara no permite tomar fotos.
+     */
     private SurfaceHolder surfaceHolder;
-
-
-    private File fileDir;
-
+    /**
+     * Callback para recoger los datos capturados por la cámara y posteriormente ejecutar la petición
+     * post con estos.
+     */
     private Camera.PictureCallback pictureCallback=new Camera.PictureCallback() {
         @Override
         public void onPictureTaken(byte[] bytes, Camera camera) {
@@ -127,7 +141,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                     orientation = 0;
                 }
 
-                Bitmap bMapRotate;
                 if (orientation != 0) {
                     Matrix matrix = new Matrix();
                     matrix.postRotate(orientation);
@@ -157,8 +170,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         }
     };
     /**
-     * Function onCreate where the main configuration of the activity is established
-     * @param savedInstanceState
+     * {@inheritDoc}
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,7 +179,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         lblPhoto = (EditText) findViewById(R.id.lblPhoto);
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
-        fileDir=getApplicationContext().getFilesDir();
 
         context=this;
         propertyReader = new PropertyReader(context);
@@ -178,7 +189,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         myTTS = new TextToSpeech(Imagen.this,Imagen.this);
 
         camera=Camera.open(0);
-        parameters= camera.getParameters();
         surfaceView=(SurfaceView) findViewById(R.id.surfaceView);
         surfaceHolder=surfaceView.getHolder();
         try {
@@ -199,9 +209,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         });
     }
     /**
-     *
-     * @param menu
-     * @return
+     *{@inheritDoc}
      */
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -210,9 +218,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     }
 
     /**
-     *
-     * @param item
-     * @return
+     *{@inheritDoc}
      */
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -224,6 +230,10 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         return super.onOptionsItemSelected(item);
     }
 
+    /**
+     * Función que se encarga de que la aplicación tome la foto sin necesidad de la previsualización
+     * y capture los datos en un Callback
+     */
     public void tomarFoto(){
         camera.startPreview();
         camera.takePicture(null, null, pictureCallback);
@@ -287,7 +297,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
          */
         @Override
         protected String doInBackground(Void... params) {
-            // TODO Auto-generated method stub
             /**
              * To save the result
              */
@@ -341,10 +350,18 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
             this.dialog.cancel();
             Imagen.this.lblPhoto.setText(resultado);
             Imagen.this.speakWords(resultado);
-            n_touchs=0;
         }
 
     }
+
+    /**
+     * El método toma un objeto dee tipo InputStream y lo transforma en un objeto
+     * de topo String usando los datos que el InputStream contiene.
+     *
+     * @param inputStream Objeto a convertir en string
+     * @return  String resultate de la conversión
+     * @throws IOException Input/Ouput Exception
+     */
     private String convertInputStreamToString(InputStream inputStream) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
         String line = "";
