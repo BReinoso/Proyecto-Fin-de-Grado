@@ -5,8 +5,6 @@ import urllib2
 import urllib
 #---------------------
 import os
-#import matlab_wrapper
-#import goslate #Libreria de traduccion
 from flask import render_template
 from flask import Flask, request, redirect, url_for, Response
 from werkzeug import secure_filename
@@ -46,8 +44,6 @@ def index():
 	    #Ejecutamos el NeuralTalk para predecir el caption
 	    os.system("python "+NEURAL_FOLDER+"predict_on_images.py "+NEURAL_FOLDER+"cv/model_checkpoint_coco_visionlab43.stanford.edu_lstm_11.14.p -r "+UPLOAD_FOLDER)
 	    os.system("rm "+UPLOAD_FOLDER+file.filename)
-	    #Movemos el result.html a la carpeta templates
-	    #os.system("cp "+UPLOAD_FOLDER+"result.html "+TEMPLATE_FOLDER)
 	    #Abrimos el fichero y extraemos solamente el caption, ose laa prediccion
 	    html_file=open(UPLOAD_FOLDER+"result.html","r")
 	    strs=html_file.read()
@@ -56,12 +52,7 @@ def index():
 	    strs=strs.split('<')
 	    strs=strs[0] 
 	    strs=traducir(strs)
-	    #Escribiendo en el html el resultado final
 	    html_file.close()
-	    #html_file=open(TEMPLATE_FOLDER+"result.html","w")
-	    #html_file.write("<html><body>"+strs+"<br></body></html>")
-	    #html_file.close()
-	    print request.headers
         return strs
     #Html que visualizara el cliente cuando se hace peticion get desde navegador
     return render_template("index.html")
