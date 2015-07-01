@@ -7,9 +7,9 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Clase para controlar la extracción de propiedades desde el fichero properties.
+ * Clase para controlar la extraccion de propiedades desde el fichero properties.
  *
- * @versión 1.0
+ * @version 1.0
  * @author Bryan Reinoso Cevallos
  */
 public class PropertyReader {
@@ -37,7 +37,7 @@ public class PropertyReader {
      * propiedades para ser usadas.
      *
      * @param file Nombre del fichero .properties con el que se quiere trabajar
-     * @return Objeto properties del que se pueden extraer fácilmente las propiedades.
+     * @return Objeto properties del que se pueden extraer faacilmente las propiedades.
      */
     public Properties getMyProperties(String file){
         try{

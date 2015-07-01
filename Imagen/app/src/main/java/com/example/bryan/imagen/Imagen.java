@@ -65,12 +65,9 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     private Context context;
     /**
      * Objeto tipo propiedades donde guardaremos las propiedades del fichero properties de la
-     * aplicación.
+     * aplicacion.
      */
     private Properties properties;
-    /**
-     * Asset Manager to use with the properties
-     */
     /**
      * TextToSpeech object
      */
@@ -94,7 +91,6 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     /**
      * To handle the image
      */
-    private Uri selectedImage;
     private Bitmap imagen;
     /**
      * To cast the uri for the post request
@@ -109,26 +105,26 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      */
     private String url="Servidor";
     /**
-     * Objeto camara para controlar la camara desde nuestra aplicación. Ahora esta actualizado, pero
-     * para uso con Android lolipop así que se ha decidido usar este objeto.
+     * Objeto camara para controlar la camara desde nuestra aplicacion. Ahora esta actualizado, pero
+     * para uso con Android lolipop asi que se ha decidido usar este objeto.
      */
     private Camera camera;
     /**
-     * Objeto referencia al surfaceView del xml de la actividad, donde se verá la previsualización
-     * de la cámara. Nosotros lo tenemos puesto en transparente.
+     * Objeto referencia al surfaceView del xml de la actividad, donde se vera la previsualizacion
+     * de la camara. Nosotros lo tenemos puesto en transparente.
      */
     private SurfaceView surfaceView;
     /**
-     *Este objeto sirve como contenedor de la surfaceView y es con el que iniciamos la previsualización
-     * de la cámara, porque sin iniciarlo la cámara no permite tomar fotos.
+     *Este objeto sirve como contenedor de la surfaceView y es con el que iniciamos la previsualizacion
+     * de la camara, porque sin iniciarlo la camara no permite tomar fotos.
      */
     private SurfaceHolder surfaceHolder;
     /**
-     * Botón que se autoactiva para dar las primeras instrucciones al usuario
+     * Boton que se autoactiva para dar las primeras instrucciones al usuario
      */
     private Button button;
     /**
-     * Callback para recoger los datos capturados por la cámara y posteriormente ejecutar la petición
+     * Callback para recoger los datos capturados por la camara y posteriormente ejecutar la peticion
      * post con estos.
      */
     private Camera.PictureCallback pictureCallback=new Camera.PictureCallback() {
@@ -253,7 +249,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     }
 
     /**
-     * Función que se encarga de que la aplicación tome la foto sin necesidad de la previsualización
+     * Funcion que se encarga de que la aplicacion tome la foto sin necesidad de la previsualizacion
      * y capture los datos en un Callback
      */
     public void tomarFoto(){
@@ -262,7 +258,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     }
 
     /**
-     * Función que se encarga de extraer el path de un fichero a través
+     * Funcion que se encarga de extraer el path de un fichero a traves
      * de un objeto de tipo Uri
      *
      * @param uri Objeto Uri referenciando el archivo
@@ -377,7 +373,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     }
 
     /**
-     * El método toma un objeto dee tipo InputStream y lo transforma en un objeto
+     * El metodo toma un objeto dee tipo InputStream y lo transforma en un objeto
      * de topo String usando los datos que el InputStream contiene.
      *
      * @param inputStream Objeto a convertir en string
