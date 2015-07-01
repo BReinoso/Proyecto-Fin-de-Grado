@@ -1,20 +1,22 @@
 %% vgg / caffe spec
 %%use_gpu=0 if we are on a virtual machine
-%%Import to can use caffe if u dont have on path
-addpath('/home/bryan/caffe/matlab/caffe');
-addpath('/home/bryan/caffe/tools');
 use_gpu = 1;
-caffe('set_device', 1);
 %%Path to model an def fille
-model_def_file = '/home/bryan/neuraltalk/matlab_features_reference/deploy_features.prototxt';
-model_file = '/home/bryan/Proyecto-Fin-de-Grado/servidor/uploads/VGG_ILSVRC_16_layers.caffemodel';
+root='/home/bryan';
+matCaffe='/caffe/matlab/caffe';
+addPath= strcat(root,matCaffe);
+addpath(addPath);
+neuralTalk='/neuraltalk/matlab_features_reference/deploy_features.prototxt';
+model_def_file =strcat(root,neuralTalk);
+caffeModel='/Proyecto-Fin-de-Grado/servidor/uploads/VGG_ILSVRC_16_layers.caffemodel';
+model_file = strcat(root,caffeModel);
 batch_size = 10;
 
 matcaffe_init(use_gpu, model_def_file, model_file);
 
 %% input files spec
-
-root_path = '/home/bryan/Proyecto-Fin-de-Grado/servidor/uploads/';
+uploads='/Proyecto-Fin-de-Grado/servidor/uploads/';
+root_path = strcat(root,uploads);
 fs = textread([root_path 'tasks.txt'], '%s');
 N = length(fs);
 

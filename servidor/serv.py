@@ -8,17 +8,21 @@ import os
 from flask import render_template
 from flask import Flask, request, redirect, url_for, Response
 from werkzeug import secure_filename
+#Directorio que sucede tras hacer cd ~
+ROOT='/home/bryan'
 #Ruta hacia el directorio de NeuralTalk
-NEURAL_FOLDER='/home/bryan/neuraltalk/'
+NEURAL_FOLDER=ROOT+'/neuraltalk/'
 #Ruta hacia el directorio del servidor
-SERV_FOLDER = '/home/bryan/Proyecto-Fin-de-Grado/servidor/'
+SERV_FOLDER = ROOT+'/Proyecto-Fin-de-Grado/servidor/'
 #Ruta hacia el directorio uploads de donde tengas el servidor 
 UPLOAD_FOLDER = SERV_FOLDER+'uploads/'
 #Rute hacia los templates
 TEMPLATE_FOLDER=SERV_FOLDER+'templates/'
 #Ruta para modificar el archivo task y reconocer la imagen
 TASK_TXT=UPLOAD_FOLDER+'tasks.txt'
-#De momento solo admite  imagenes .jpg
+#Usuario de la licencia de MATLAB
+USER='bryan'
+#Extensiones admitidas
 ALLOWED_EXTENSIONS = set(['jpg','JPG','jpeg','JPEG'])
  
 app = Flask(__name__)
@@ -40,7 +44,7 @@ def index():
 	    f.write(file.filename+'\n')
 	    f.close()
 	    #Ejecutamos el script para extraer las caractersticas de la imagen
-	    os.system("sudo -u bryan "+SERV_FOLDER+"/matlab.sh")
+	    os.system("sudo -u "+USER+" "+SERV_FOLDER+"/matlab.sh")
 	    #Ejecutamos el NeuralTalk para predecir el caption
 	    os.system("python "+NEURAL_FOLDER+"predict_on_images.py "+NEURAL_FOLDER+"cv/model_checkpoint_coco_visionlab43.stanford.edu_lstm_11.14.p -r "+UPLOAD_FOLDER)
 	    os.system("rm "+UPLOAD_FOLDER+file.filename)
