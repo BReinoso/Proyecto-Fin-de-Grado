@@ -1,7 +1,5 @@
 package com.example.bryan.imagen;
 
-import android.app.ProgressDialog;
-import android.content.Context;
 import android.os.AsyncTask;
 
 import org.apache.http.HttpEntity;
@@ -26,10 +24,6 @@ import java.io.InputStreamReader;
  * @author Bryan Reinoso Cevallos
  */
 class ImageUploader extends AsyncTask<Void, Void, String> {
-    /**
-     * Contexto de la actividad que instancia el objeto
-     */
-    private Context context;
     /**
      * Imagen que se va a enviar
      */
@@ -64,19 +58,12 @@ class ImageUploader extends AsyncTask<Void, Void, String> {
      */
     private HttpEntity yourEntity;
     /**
-     * To wait for the main thread
-     */
-    private ProgressDialog dialog;
-
-    /**
      * Contstructor de la clase ImageUploader
      *
      * @param url Url al servidor
-     * @param context Contexto de la actividad que iinstancia el objeto
      */
-    public ImageUploader(String url,Context context){
+    public ImageUploader(String url){
         this.url=url;
-        this.context=context;
         post= new HttpPost(url);
         builder= MultipartEntityBuilder.create();
     }
@@ -114,11 +101,11 @@ class ImageUploader extends AsyncTask<Void, Void, String> {
             if (inputStream != null)
                 result = convertInputStreamToString(inputStream);
             else
-                result = "No se ha conectado con el servidor";
+                result = "No se ha obtenido resultado del servidor";
             return result;
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return "Hubo problemas al conectarse con el servidor, compruebe su conexión a Internet.";
         }
     }
 
@@ -128,9 +115,6 @@ class ImageUploader extends AsyncTask<Void, Void, String> {
     @Override
     protected void onPreExecute() {
         super.onPreExecute();
-        this.dialog= new ProgressDialog(context);
-        this.dialog.setMessage("Processing...");
-        this.dialog.show();
     }
 
     /**
@@ -139,7 +123,6 @@ class ImageUploader extends AsyncTask<Void, Void, String> {
     @Override
     protected void onPostExecute(String result) {
         super.onPostExecute(result);
-        this.dialog.dismiss();
     }
 
     /**

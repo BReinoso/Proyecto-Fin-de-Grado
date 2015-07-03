@@ -36,6 +36,7 @@ class Speaker implements TextToSpeech.OnInitListener{
      * @param speech Cadena a leer
      */
     public void speakWords(String speech) {
+        while(myTTS.isSpeaking());
         myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
     }
 
@@ -51,14 +52,5 @@ class Speaker implements TextToSpeech.OnInitListener{
         else if (initStatus == TextToSpeech.ERROR) {
             Toast.makeText(context, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
         }
-    }
-
-    /**
-     * Funcion que se encarga de informar si hay un proceso de habla en marcha
-     *
-     * @return Booleano que indica si existe un proceso en marcha de habla
-     */
-    public boolean hablando(){
-        return myTTS.isSpeaking();
     }
 }

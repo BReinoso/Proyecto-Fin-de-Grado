@@ -1,6 +1,7 @@
 package com.example.bryan.imagen;
 
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
@@ -117,6 +118,10 @@ public class Imagen extends ActionBarActivity {
      */
     private Button button;
     /**
+     * ProgressDialog para asegurar el correcto uso de la aplicación
+     */
+    private ProgressDialog progressDialog;
+    /**
      * Callback para recoger la imagen la foto tomada, después se procesa y se procede a mandar
      * la petición post.
      */
@@ -144,6 +149,7 @@ public class Imagen extends ActionBarActivity {
                 }
                 imgPhoto.setImageBitmap(imagen);
                 img.setFile_image(file_image);
+                progressDialog=ProgressDialog.show(Imagen.this, "", "Procesando...");
                 try {
                     speaker.speakWords("Procesando imagen, esto puede tardar uno o dos minutos");
                     resultado=img.execute().get();
@@ -154,7 +160,7 @@ public class Imagen extends ActionBarActivity {
                 } catch (ExecutionException e) {
                     e.printStackTrace();
                 }
-                while(speaker.hablando());
+                progressDialog.dismiss();
                 button.postDelayed(new Runnable() {
                     @Override
                     public void run() {
@@ -178,7 +184,7 @@ public class Imagen extends ActionBarActivity {
         lblPhoto = (EditText) findViewById(R.id.lblPhoto);
         imgPhoto = (ImageView) findViewById(R.id.imgPhoto);
         world = (RelativeLayout) findViewById(R.id.world);
-        button= (Button) findViewById(R.id.initButton);
+        button= (Button) findViewById(R.id.initButton);;
 
         button.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
@@ -246,7 +252,7 @@ public class Imagen extends ActionBarActivity {
      * La camara se inicia aqu porque se libera los recursos de esta cada vez que se ha tomado la foto
      */
     public void tomarFoto() {
-        img= new ImageUploader(url,context);
+        img= new ImageUploader(url);
         camera=Camera.open(0);
         try {
             camera.setPreviewDisplay(surfaceHolder);
