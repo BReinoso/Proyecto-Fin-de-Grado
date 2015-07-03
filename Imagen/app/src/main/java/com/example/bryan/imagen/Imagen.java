@@ -1,14 +1,12 @@
 package com.example.bryan.imagen;
 
 
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.speech.tts.TextToSpeech;
@@ -26,25 +24,14 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
-
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.HttpMultipartMode;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.impl.client.DefaultHttpClient;
-
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Locale;
 import java.util.Properties;
+import java.util.concurrent.ExecutionException;
+
 import android.hardware.Camera;
 
 /**
@@ -54,13 +41,18 @@ import android.hardware.Camera;
  * @version 2.7
  * @author Bryan Reinoso Cevallos
  */
-public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitListener{
+public class Imagen extends ActionBarActivity {
     /**
-     * Resource to use with the assetManager
+     * Objeto con el que trabajaremos para ejecutar y usar la biblioteca Text2Speech
+     */
+    private ImageUploader img;
+    /**
+     * Clase que se encarga de extraer de un fichero .propeerties el objeto Properties para que
+     * podamos acceder a las propiedades de manera muy sencilla
      */
     private PropertyReader propertyReader;
     /**
-     * Objeto tipo contexto para guardar el contexto de la aplicación
+     * Objeto tipo Context para guardar el contexto de la aplicación
      */
     private Context context;
     /**
@@ -68,40 +60,41 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      * aplicacion.
      */
     private Properties properties;
+
     /**
-     * TextToSpeech object
+     * Instancia de la clase Speaker, sirve para usar la biblioteca TextToSpeach
      */
-    private TextToSpeech myTTS;
+    private Speaker speaker;
     /**
-     * To control the use of application
+     * Para evitar que el usuario pueda hacer un mal uso de los toques de pantalla
      */
     private int n_touchs = 0;
     /**
-     * To put the label of the photo after the prediction
+     * Para presentar la descripcion de la imagen una vez se ha ejecutado la prediccion
      */
     private EditText lblPhoto;
     /**
-     * To show the photo
+     * Para mostrar la foto en la interefaz una vez se ha ejecutado la prediccion
      */
     private ImageView imgPhoto;
     /**
-     * To work with the entire application
+     * Objeto que hace referencia al contenedor principal de la applicacion
      */
     private RelativeLayout world;
     /**
-     * To handle the image
+     * Objeto en el que guardaremos la imagen para mostrarla a traves de la interfaz
      */
     private Bitmap imagen;
     /**
-     * To cast the uri for the post request
+     *  Objeto de tipo File para construir el cuerpo de la peticion POST
      */
     private File file_image;
     /**
-     * In case the connection don't work properly
+     * Objeto en el que se guardara el resultado de la prediccion
      */
     private String resultado;
     /**
-     * URL of the server
+     * URL para conectarse al servidor, extraido de un fichero de propiedades
      */
     private String url="Servidor";
     /**
@@ -124,8 +117,8 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
      */
     private Button button;
     /**
-     * Callback para recoger los datos capturados por la camara y posteriormente ejecutar la peticion
-     * post con estos.
+     * Callback para recoger la imagen la foto tomada, después se procesa y se procede a mandar
+     * la petición post.
      */
     private Camera.PictureCallback pictureCallback=new Camera.PictureCallback() {
         @Override
@@ -135,21 +128,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                 camera.stopPreview();
                 camera.release();
                 Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
-                int orientation;
-                if(bitmap.getHeight() < bitmap.getWidth()){
-                    orientation = 90;
-                } else {
-                    orientation = 0;
-                }
-
-                if (orientation != 0) {
-                    Matrix matrix = new Matrix();
-                    matrix.postRotate(orientation);
-                    bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
-                            bitmap.getHeight(), matrix, true);
-                }
-                imagen=bitmap;
-                imgPhoto.setImageBitmap(imagen);
+                imagen=corregirOrientación(bitmap);
                 file_image=new File(Environment.getExternalStorageDirectory(), "procesarImagen.jpg");
                 if(file_image.exists()){
                     file_image.delete();
@@ -163,7 +142,26 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
                 }catch (Exception e){
                     e.printStackTrace();
                 }
-                new ImageUploader().execute();
+                imgPhoto.setImageBitmap(imagen);
+                img.setFile_image(file_image);
+                try {
+                    speaker.speakWords("Procesando imagen, esto puede tardar uno o dos minutos");
+                    resultado=img.execute().get();
+                    lblPhoto.setText(resultado);
+                    speaker.speakWords(resultado);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                } catch (ExecutionException e) {
+                    e.printStackTrace();
+                }
+                while(speaker.hablando());
+                button.postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        button.performClick();
+                    }
+
+                }, 2000);
             }else{
 
                 Log.w("NO TOMADA","No se tienen datos");
@@ -184,9 +182,8 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
 
         button.setOnClickListener(new Button.OnClickListener() {
             public void onClick(View v) {
-                speakWords("Toque la pantalla para tomar una foto y que se ejecute la predicción." +
-                        "Asegúrese que está apuntando con el móvil en la dirección que quiere tomar " +
-                        "la foto.");
+                speaker.speakWords("Apunte con el móvil en la dirección deseada y toque la pantalla para tomar la foto.");
+                n_touchs=0;
             }
         });
 
@@ -196,16 +193,10 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         url=properties.getProperty(url);
         lblPhoto.setText("A la espera de que se toque la pantalla");
 
-        myTTS = new TextToSpeech(Imagen.this,Imagen.this);
+        speaker = new Speaker(context);
 
-        camera=Camera.open(0);
         surfaceView=(SurfaceView) findViewById(R.id.surfaceView);
         surfaceHolder=surfaceView.getHolder();
-        try {
-            camera.setPreviewDisplay(surfaceHolder);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
 
         world.setOnTouchListener(new RelativeLayout.OnTouchListener() {
             @Override
@@ -221,7 +212,7 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
         button.postDelayed(new Runnable() {
             @Override
             public void run() {
-              button.performClick();
+                button.performClick();
             }
 
         }, 2000);
@@ -251,8 +242,17 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     /**
      * Funcion que se encarga de que la aplicacion tome la foto sin necesidad de la previsualizacion
      * y capture los datos en un Callback
+     *
+     * La camara se inicia aqu porque se libera los recursos de esta cada vez que se ha tomado la foto
      */
-    public void tomarFoto(){
+    public void tomarFoto() {
+        img= new ImageUploader(url,context);
+        camera=Camera.open(0);
+        try {
+            camera.setPreviewDisplay(surfaceHolder);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         camera.startPreview();
         camera.takePicture(null, null, pictureCallback);
     }
@@ -274,145 +274,28 @@ public class Imagen extends ActionBarActivity implements TextToSpeech.OnInitList
     }
 
     /**
-     * Internal class to do the post request
-     */
-    class ImageUploader extends AsyncTask<Void, Void, String> {
-        /**
-         * Client to do the post request
-         */
-        private HttpClient client;
-        /**
-         * HttPost object to handle the post request
-         */
-        private HttpPost post = new HttpPost(url);
-        /**
-         * To handle the data into the post request
-         */
-        private MultipartEntityBuilder builder = MultipartEntityBuilder.create();
-        /**
-         * To handle the response after the post request, form here we will receive the prediction
-         * label
-         */
-        private HttpResponse response;
-        /**
-         * Special object to send the image into the post request
-         */
-        private FileBody bin;
-        /**
-         * To handle the header of post request
-         */
-        private HttpEntity yourEntity;
-        /**
-         * To wait for the main thread
-         */
-        private final ProgressDialog dialog = new ProgressDialog(Imagen.this);
-
-        /**
-         * This function is necessary for the post request execution because it cannot be execute in
-         * the thread main
-         * @param params
-         * @return Return the label or "Did not work"
-         */
-        @Override
-        protected String doInBackground(Void... params) {
-            /**
-             * To save the result
-             */
-            String result = "";
-            try {
-                client = new DefaultHttpClient();
-                builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-                bin = new FileBody(file_image);
-                builder.addPart("file", bin);
-                yourEntity = builder.build();
-                post.setEntity(yourEntity);
-
-                response = null;
-                response = client.execute(post);
-
-                InputStream inputStream = null;
-                inputStream = response.getEntity().getContent();
-                if (inputStream != null)
-                    result = convertInputStreamToString(inputStream);
-                else
-                    result = "Did not work!";
-                resultado = result;
-                return result;
-            } catch (Exception e) {
-                e.printStackTrace();
-                resultado="No se ha conectado con el servidor";
-                return null;
-            }
-        }
-
-        /**
-         *To execute before the post request
-         */
-        @Override
-        protected void onPreExecute() {
-            // TODO Auto-generated method stub
-            super.onPreExecute();
-            speakWords("Procesando imagen, esto puede tardar uno o dos minutos");
-            this.dialog.setMessage("Processing...");
-            this.dialog.show();
-        }
-
-        /**
-         * To execute after the post request
-         * @param result The result of the execution
-         */
-        @Override
-        protected void onPostExecute(String result) {
-            // TODO Auto-generated method stub
-            super.onPostExecute(result);
-            this.dialog.cancel();
-            Imagen.this.lblPhoto.setText(resultado);
-            Imagen.this.speakWords(resultado);
-        }
-
-    }
-
-    /**
-     * El metodo toma un objeto dee tipo InputStream y lo transforma en un objeto
-     * de topo String usando los datos que el InputStream contiene.
+     * Funcion que se encarga de corregir la orientacion de la imagen de cara a presentarla en la
+     * interfaz grafica.
      *
-     * @param inputStream Objeto a convertir en string
-     * @return  String resultate de la conversión
-     * @throws IOException Input/Ouput Exception
+     * @param bitmapEntrada Imagen que queremos corregir su orientacion
+     * @return Imagen con orientacion correcta
      */
-    private String convertInputStreamToString(InputStream inputStream) throws IOException {
-        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-        String line = "";
-        String result = "";
-        while ((line = bufferedReader.readLine()) != null)
-            result += line;
-        bufferedReader.close();
-        inputStream.close();
-        return result;
-
-    }
-
-    /**
-     * Se lee una cadena en voz alta
-     *
-     * @param speech Cadena a leer
-     */
-    private void speakWords(String speech) {
-        myTTS.speak(speech, TextToSpeech.QUEUE_FLUSH, null);
-    }
-
-    /**
-     * Configurando el Text2Speech object
-     * @param initStatus Status
-     */
-    public void onInit(int initStatus) {
-        if (initStatus == TextToSpeech.SUCCESS) {
-            if(myTTS.isLanguageAvailable(Locale.US)==TextToSpeech.LANG_AVAILABLE) {
-                myTTS.setLanguage(Locale.US);
-            }
+    private Bitmap corregirOrientación(Bitmap bitmapEntrada){
+        Bitmap bitmap=bitmapEntrada;
+        int orientation;
+        if(bitmap.getHeight() < bitmap.getWidth()){
+            orientation = 90;
+        } else {
+            orientation = 0;
         }
-        else if (initStatus == TextToSpeech.ERROR) {
-            Toast.makeText(this, "Sorry! Text To Speech failed...", Toast.LENGTH_LONG).show();
+
+        if (orientation != 0) {
+            Matrix matrix = new Matrix();
+            matrix.postRotate(orientation);
+            bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(),
+                    bitmap.getHeight(), matrix, true);
         }
+
+        return bitmap;
     }
 }
