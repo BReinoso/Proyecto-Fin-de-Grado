@@ -37,7 +37,7 @@ public class PropertyReader {
      * propiedades para ser usadas.
      *
      * @param file Nombre del fichero .properties con el que se quiere trabajar
-     * @return Objeto properties del que se pueden extraer faacilmente las propiedades.
+     * @return Objeto properties del que se pueden extraer facilmente las propiedades.
      */
     public Properties getMyProperties(String file){
         try{

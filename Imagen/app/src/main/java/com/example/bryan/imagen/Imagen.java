@@ -69,7 +69,7 @@ public class Imagen extends ActionBarActivity {
     /**
      * Para evitar que el usuario pueda hacer un mal uso de los toques de pantalla
      */
-    private int n_touchs = 0;
+    private int n_touchs = 10;
     /**
      * Para presentar la descripcion de la imagen una vez se ha ejecutado la prediccion
      */
